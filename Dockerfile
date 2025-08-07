@@ -1,4 +1,14 @@
 # Multi-stage build for production
+FROM node:18-alpine AS client-build
+
+# Build the client application
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm ci
+COPY client/ ./
+RUN npm run build
+
+# Main application stage
 FROM node:18-alpine AS base
 
 # Install dependencies for Puppeteer
@@ -26,6 +36,9 @@ RUN npm ci --only=production && npm cache clean --force
 
 # Copy source code
 COPY . .
+
+# Copy built client from the client-build stage
+COPY --from=client-build /app/client/build ./client/build
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
